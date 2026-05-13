@@ -92,3 +92,15 @@ export function formatShortDate(timestamp: number) {
 		year: 'numeric'
 	}).format(new Date(timestamp));
 }
+
+export function formatMonthYear(timestamp: number) {
+	return new Intl.DateTimeFormat('id-ID', {
+		month: 'long',
+		year: 'numeric'
+	}).format(new Date(timestamp));
+}
+
+export function monthKey(timestamp: number) {
+	const d = new Date(timestamp);
+	return `${d.getFullYear()}-${d.getMonth()}`;
+}

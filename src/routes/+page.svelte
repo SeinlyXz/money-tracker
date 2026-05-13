@@ -55,11 +55,10 @@
 		hasDeepSeekKey={data.hasDeepSeekKey}
 		summary={data.summary}
 		monthLabel={data.monthLabel}
-		monthlyTransactionCount={data.monthlyTransactionCount}
 	/>
 	<ApiKeyNotice hasDeepSeekKey={data.hasDeepSeekKey} />
 
-	<TransactionList transactions={data.transactions} compact />
+	<TransactionList transactions={data.transactions} />
 </main>
 
 <div
