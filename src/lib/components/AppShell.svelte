@@ -7,11 +7,13 @@
 
 	const HIDDEN_NAV_PATHS = ['/login'];
 
-	const hideNav = $derived(
-		HIDDEN_NAV_PATHS.some(
-			(path) => page.url.pathname === path || page.url.pathname.startsWith(`${path}/`)
-		)
-	);
+	const hideNav = $derived.by(() => {
+		const pathname = page.url.pathname;
+		if (HIDDEN_NAV_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))) {
+			return true;
+		}
+		return page.data.passwordConfigured === false;
+	});
 </script>
 
 <div
