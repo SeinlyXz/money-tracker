@@ -14,7 +14,7 @@ module.exports = {
 				NODE_ENV: 'production',
 				HOST: '0.0.0.0',
 				PORT: 3000,
-				ORIGIN: 'http://localhost:3000',
+				ORIGIN: 'http://localhost:3022',
 				BODY_SIZE_LIMIT: '1mb',
 				DEEPSEEK_API_KEY: '',
 				DEEPSEEK_BASE_URL: 'https://api.deepseek.com',
