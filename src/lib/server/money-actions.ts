@@ -1,6 +1,6 @@
 import { fail, type RequestEvent } from '@sveltejs/kit';
 
-import { parseMoneyInputWithAi } from '$lib/server/ai/money-parser';
+import { parseMoneyInputsWithAi } from '$lib/server/ai/money-parser';
 import { createTransaction, deleteTransaction } from '$lib/server/db/transactions';
 import {
 	dateInputToTimestamp,
@@ -18,9 +18,9 @@ export async function quickAddAction({ request }: RequestEvent) {
 	}
 
 	try {
-		const parsed = await parseMoneyInputWithAi(prompt);
+		const parsedList = (await parseMoneyInputsWithAi(prompt)).filter((entry) => entry.amount > 0);
 
-		if (parsed.amount <= 0) {
+		if (!parsedList.length) {
 			return fail(400, {
 				action: 'quickAdd',
 				message: 'Nominal belum terbaca. Coba tulis seperti "kopi 25k tadi pagi".',
@@ -28,20 +28,27 @@ export async function quickAddAction({ request }: RequestEvent) {
 			});
 		}
 
-		createTransaction({
-			title: parsed.title,
-			amount: parsed.amount,
-			type: parsed.type,
-			category: parsed.category,
-			merchant: parsed.merchant,
-			note: parsed.note,
-			sourceText: prompt,
-			occurredAt: parsed.occurredAt
-		});
+		for (const parsed of parsedList) {
+			createTransaction({
+				title: parsed.title,
+				amount: parsed.amount,
+				type: parsed.type,
+				category: parsed.category,
+				merchant: parsed.merchant,
+				note: parsed.note,
+				sourceText: prompt,
+				occurredAt: parsed.occurredAt
+			});
+		}
+
+		const message =
+			parsedList.length === 1
+				? `Tersimpan: ${parsedList[0].title}`
+				: `Tersimpan ${parsedList.length} transaksi: ${parsedList.map((entry) => entry.title).join(', ')}`;
 
 		return {
 			action: 'quickAdd',
-			message: `Tersimpan: ${parsed.title}`,
+			message,
 			prompt: ''
 		};
 	} catch (error) {

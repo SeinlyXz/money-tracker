@@ -32,10 +32,14 @@ type AiMoneyJson = {
 	confidence?: unknown;
 };
 
-export async function parseMoneyInputWithAi(
+type AiMoneyEnvelope = {
+	transactions?: unknown;
+};
+
+export async function parseMoneyInputsWithAi(
 	input: string,
 	now = new Date()
-): Promise<ParsedMoneyInput> {
+): Promise<ParsedMoneyInput[]> {
 	const trimmed = input.trim();
 	if (!trimmed) {
 		throw new Error('Input cepat masih kosong.');
@@ -43,32 +47,60 @@ export async function parseMoneyInputWithAi(
 
 	const today = getLocalDateInputValue(now);
 	const systemPrompt = `Kamu adalah parser transaksi keuangan personal Indonesia. Balas hanya JSON valid.
-Ambil data dari input user untuk money tracker.
+Tugasmu: pecah input user menjadi DAFTAR transaksi (bisa lebih dari satu).
 
 Kategori valid: ${CATEGORIES.join(', ')}.
-Format JSON:
+Format JSON wajib:
 {
-  "title": "judul transaksi pendek",
-  "amount": 25000,
-  "type": "expense",
-  "category": "Makan",
-  "merchant": "nama tempat atau null",
-  "note": "catatan tambahan atau null",
-  "occurredOn": "${today}",
-  "confidence": 0.9
+  "transactions": [
+    {
+      "title": "judul transaksi pendek",
+      "amount": 25000,
+      "type": "expense",
+      "category": "Makan",
+      "merchant": "nama tempat atau null",
+      "note": "catatan tambahan atau null",
+      "occurredOn": "${today}",
+      "confidence": 0.9
+    }
+  ]
 }
 
 Aturan:
-- amount adalah integer IDR tanpa simbol mata uang.
-- "25k" berarti 25000, "1.2jt" berarti 1200000.
-- type hanya "expense" atau "income"; default expense kecuali jelas pemasukan/gaji/bonus/refund masuk.
-- Jika tanggal tidak disebut, gunakan ${today}.
-- Jika input ambigu, tetap buat tebakan terbaik dan turunkan confidence.`;
+- Setiap nominal yang berbeda = satu transaksi terpisah. Contoh "pemasukan 85 ribu dan 316 ribu" -> 2 transaksi income.
+- Kalimat seperti "kopi 25k dan bensin 30k" -> 2 transaksi expense.
+- Jika user nyebut beberapa nominal tapi konteksnya satu transaksi (mis. "bayar listrik 150rb pakai uang 200rb"), tetap satu transaksi pakai nominal pengeluaran sebenarnya.
+- amount = integer IDR tanpa simbol. "25k"=25000, "85 ribu"=85000, "316.000"=316000, "1.2jt"=1200000.
+- type "expense" atau "income"; default expense kecuali jelas pemasukan/gaji/bonus/refund/terima/masuk -> income.
+- Jika tanggal tidak disebut, pakai ${today}.
+- Jika ambigu, tetap buat tebakan terbaik dan turunkan confidence.
+- "transactions" wajib array, minimal 1 elemen.`;
 
 	const raw = await createDeepSeekJsonCompletion(systemPrompt, trimmed);
-	const parsed = JSON.parse(raw) as AiMoneyJson;
+	const parsed = JSON.parse(raw) as AiMoneyEnvelope | AiMoneyJson;
 
-	return normalizeParsedMoney(parsed, trimmed);
+	const list = Array.isArray((parsed as AiMoneyEnvelope).transactions)
+		? ((parsed as AiMoneyEnvelope).transactions as AiMoneyJson[])
+		: [parsed as AiMoneyJson];
+
+	const normalized = list
+		.map((entry) => normalizeParsedMoney(entry, trimmed))
+		.filter((entry) => entry.amount > 0);
+
+	if (!normalized.length) {
+		const fallback = normalizeParsedMoney(list[0] ?? {}, trimmed);
+		return [fallback];
+	}
+
+	return normalized;
+}
+
+export async function parseMoneyInputWithAi(
+	input: string,
+	now = new Date()
+): Promise<ParsedMoneyInput> {
+	const list = await parseMoneyInputsWithAi(input, now);
+	return list[0];
 }
 
 function normalizeParsedMoney(parsed: AiMoneyJson, fallbackTitle: string): ParsedMoneyInput {
