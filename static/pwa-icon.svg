@@ -1,0 +1,11 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+	<title id="title">Money Tracker app icon</title>
+	<desc id="desc">Green rounded finance app icon with wallet and growth signal.</desc>
+	<rect width="512" height="512" rx="112" fill="#10231D"/>
+	<path d="M128 174C128 150.804 146.804 132 170 132H344C366.091 132 384 149.909 384 172V340C384 362.091 366.091 380 344 380H170C146.804 380 128 361.196 128 338V174Z" fill="#F5FAF5"/>
+	<path d="M156 184C156 170.745 166.745 160 180 160H376C389.255 160 400 170.745 400 184V316C400 329.255 389.255 340 376 340H180C166.745 340 156 329.255 156 316V184Z" fill="#DDFBEA"/>
+	<path d="M184 220H292" stroke="#10231D" stroke-width="28" stroke-linecap="round"/>
+	<path d="M184 280H248" stroke="#0F766E" stroke-width="28" stroke-linecap="round"/>
+	<path d="M276 300L312 264L338 290L384 232" stroke="#059669" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+	<circle cx="384" cy="232" r="20" fill="#34D399"/>
+</svg>
