@@ -1,14 +1,24 @@
-import { generateRegistrationOptions, verifyRegistrationResponse } from '@simplewebauthn/server';
+import {
+	generateAuthenticationOptions,
+	generateRegistrationOptions,
+	verifyAuthenticationResponse,
+	verifyRegistrationResponse
+} from '@simplewebauthn/server';
 import type {
+	AuthenticationResponseJSON,
 	AuthenticatorTransportFuture,
 	RegistrationResponseJSON
 } from '@simplewebauthn/server';
 
 import {
 	createPasskey,
+	getPasskey,
+	getPasskeyAuthChallenge,
 	getPasskeyChallenge,
 	listPasskeys,
-	setPasskeyChallenge
+	setPasskeyAuthChallenge,
+	setPasskeyChallenge,
+	updatePasskeyCounter
 } from '$lib/server/db/security';
 
 const RP_NAME = 'Money Tracker';
@@ -71,6 +81,60 @@ export async function verifyPasskeyRegistration(response: RegistrationResponseJS
 		backedUp: credentialBackedUp
 	});
 
+	return verification;
+}
+
+export async function createPasskeyAuthenticationOptions(origin: URL) {
+	const rpID = getRpId(origin);
+	const existingPasskeys = listPasskeys();
+
+	const options = await generateAuthenticationOptions({
+		rpID,
+		timeout: 60_000,
+		userVerification: 'preferred',
+		allowCredentials: existingPasskeys.map((passkey) => ({
+			id: passkey.id,
+			transports: parseTransports(passkey.transports)
+		}))
+	});
+
+	setPasskeyAuthChallenge(options.challenge);
+	return options;
+}
+
+export async function verifyPasskeyAuthentication(
+	response: AuthenticationResponseJSON,
+	origin: URL
+) {
+	const challenge = getPasskeyAuthChallenge();
+	if (!challenge) {
+		throw new Error('Challenge passkey tidak ditemukan. Coba ulangi proses login.');
+	}
+
+	const passkey = getPasskey(response.id);
+	if (!passkey) {
+		throw new Error('Passkey tidak terdaftar.');
+	}
+
+	const verification = await verifyAuthenticationResponse({
+		response,
+		expectedChallenge: challenge,
+		expectedOrigin: origin.origin,
+		expectedRPID: getRpId(origin),
+		requireUserVerification: false,
+		credential: {
+			id: passkey.id,
+			publicKey: new Uint8Array(Buffer.from(passkey.publicKey, 'base64url')),
+			counter: passkey.counter,
+			transports: parseTransports(passkey.transports)
+		}
+	});
+
+	if (!verification.verified) {
+		throw new Error('Verifikasi passkey gagal.');
+	}
+
+	updatePasskeyCounter(passkey.id, verification.authenticationInfo.newCounter);
 	return verification;
 }
 

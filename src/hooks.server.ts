@@ -1,0 +1,31 @@
+import { redirect, type Handle } from '@sveltejs/kit';
+
+import { hasPassword } from '$lib/server/db/security';
+import { SESSION_COOKIE, verifySessionToken } from '$lib/server/security/session';
+
+const PUBLIC_PATHS = ['/login', '/api/passkeys/authenticate'];
+
+function isPublic(pathname: string) {
+	return PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+}
+
+export const handle: Handle = async ({ event, resolve }) => {
+	const token = event.cookies.get(SESSION_COOKIE);
+	event.locals.authenticated = verifySessionToken(token);
+
+	const passwordSet = hasPassword();
+	const pathname = event.url.pathname;
+
+	if (passwordSet && !event.locals.authenticated && !isPublic(pathname)) {
+		if (event.request.method === 'GET') {
+			throw redirect(303, `/login?redirectTo=${encodeURIComponent(pathname + event.url.search)}`);
+		}
+		throw redirect(303, '/login');
+	}
+
+	if (event.locals.authenticated && pathname === '/login') {
+		throw redirect(303, '/');
+	}
+
+	return resolve(event);
+};

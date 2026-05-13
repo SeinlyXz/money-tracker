@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import { startRegistration } from '@simplewebauthn/browser';
-	import { KeyRound, LockKeyhole, ShieldCheck } from 'lucide-svelte';
+	import { KeyRound, LockKeyhole, LogOut, ShieldCheck } from 'lucide-svelte';
 
 	import FlashMessage from '$lib/components/FlashMessage.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
@@ -143,5 +143,17 @@
 				</p>
 			{/if}
 		</div>
+
+		{#if data.passwordConfigured}
+			<form method="POST" action="/logout">
+				<button
+					type="submit"
+					class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[8px] border border-rose-200 bg-white px-4 text-sm font-bold text-rose-700 shadow-sm transition hover:bg-rose-50 active:scale-[0.99]"
+				>
+					<LogOut size={18} aria-hidden="true" />
+					Keluar
+				</button>
+			</form>
+		{/if}
 	</section>
 </main>

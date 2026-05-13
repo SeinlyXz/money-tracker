@@ -3,6 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 
 import { countPasskeys, hasPassword, setPasswordHash } from '$lib/server/db/security';
 import { hashPassword } from '$lib/server/security/password';
+import { createSessionToken, setSessionCookie } from '$lib/server/security/session';
 
 export const load: PageServerLoad = async () => ({
 	passwordConfigured: hasPassword(),
@@ -10,7 +11,7 @@ export const load: PageServerLoad = async () => ({
 });
 
 export const actions: Actions = {
-	setPassword: async ({ request }) => {
+	setPassword: async ({ request, cookies }) => {
 		const formData = await request.formData();
 		const password = String(formData.get('password') ?? '');
 		const confirmPassword = String(formData.get('confirmPassword') ?? '');
@@ -30,6 +31,7 @@ export const actions: Actions = {
 		}
 
 		setPasswordHash(hashPassword(password));
+		setSessionCookie(cookies, createSessionToken());
 
 		return {
 			action: 'setPassword',

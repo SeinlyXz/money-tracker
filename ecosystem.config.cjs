@@ -14,7 +14,7 @@ module.exports = {
 				NODE_ENV: 'production',
 				HOST: '0.0.0.0',
 				PORT: 3022,
-				ORIGIN: 'http://localhost:3022',
+				ORIGIN: 'https://track.theyve.my.id',
 				BODY_SIZE_LIMIT: 1048576,
 				DEEPSEEK_API_KEY: '',
 				DEEPSEEK_BASE_URL: 'https://api.deepseek.com',
