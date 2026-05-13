@@ -17,7 +17,7 @@
 	import { renderMarkdown } from '$lib/shared/markdown';
 	import { toast } from '$lib/state/toast.svelte';
 
-	let { data, form } = $props();
+	let { data } = $props();
 
 	const ranges = [
 		{ value: 'week', label: '7 hari' },
@@ -40,25 +40,104 @@
 	let saving = $state(false);
 	let savedIdLocal = $state<string | null>(null);
 
-	const answer = $derived(
-		(form as Record<string, unknown> | null | undefined)?.answer as string | undefined
-	);
-	const answerRange = $derived(
-		(form as Record<string, unknown> | null | undefined)?.rangeLabel as string | undefined
-	);
-	const answerCount = $derived(
-		(form as Record<string, unknown> | null | undefined)?.transactionCount as number | undefined
-	);
-	const answerRangeKey = $derived(
-		(form as Record<string, unknown> | null | undefined)?.range as string | undefined
-	);
-	const answerPrompt = $derived(
-		(form as Record<string, unknown> | null | undefined)?.prompt as string | undefined
-	);
-	const savedNoteId = $derived(
-		(form as Record<string, unknown> | null | undefined)?.savedNoteId as string | undefined
-	);
-	const isSaved = $derived(Boolean(savedNoteId) || Boolean(savedIdLocal));
+	let streamedAnswer = $state('');
+	let answerMeta = $state<{
+		rangeLabel: string;
+		transactionCount: number;
+		range: string;
+		prompt: string;
+	} | null>(null);
+	let errorMessage = $state('');
+	let streamDone = $state(false);
+
+	let abortController: AbortController | null = null;
+
+	async function submitStream(event: SubmitEvent) {
+		event.preventDefault();
+		if (submitting || !data.hasDeepSeekKey) return;
+
+		abortController?.abort();
+		const controller = new AbortController();
+		abortController = controller;
+
+		submitting = true;
+		savedIdLocal = null;
+		streamedAnswer = '';
+		answerMeta = null;
+		errorMessage = '';
+		streamDone = false;
+
+		const currentRange = range;
+		const currentPrompt = prompt;
+
+		try {
+			const response = await fetch(resolve('/consult/stream'), {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ range: currentRange, prompt: currentPrompt }),
+				signal: controller.signal
+			});
+
+			if (!response.ok || !response.body) {
+				throw new Error('Koneksi ke konsultan gagal.');
+			}
+
+			const reader = response.body.getReader();
+			const decoder = new TextDecoder();
+			let buffer = '';
+
+			while (true) {
+				const { value, done } = await reader.read();
+				if (done) break;
+				buffer += decoder.decode(value, { stream: true });
+
+				let newlineIndex: number;
+				while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+					const rawLine = buffer.slice(0, newlineIndex).trim();
+					buffer = buffer.slice(newlineIndex + 1);
+					if (!rawLine) continue;
+
+					try {
+						const event = JSON.parse(rawLine) as
+							| {
+									type: 'meta';
+									rangeLabel: string;
+									transactionCount: number;
+									range: string;
+									prompt: string;
+							  }
+							| { type: 'token'; text: string }
+							| { type: 'done' }
+							| { type: 'error'; message: string };
+
+						if (event.type === 'meta') {
+							answerMeta = {
+								rangeLabel: event.rangeLabel,
+								transactionCount: event.transactionCount,
+								range: event.range,
+								prompt: event.prompt
+							};
+						} else if (event.type === 'token') {
+							streamedAnswer += event.text;
+						} else if (event.type === 'done') {
+							streamDone = true;
+						} else if (event.type === 'error') {
+							errorMessage = event.message;
+						}
+					} catch {
+						// ignore malformed line
+					}
+				}
+			}
+		} catch (err) {
+			if ((err as Error)?.name !== 'AbortError') {
+				errorMessage = err instanceof Error ? err.message : 'Konsultasi gagal diproses.';
+			}
+		} finally {
+			submitting = false;
+			abortController = null;
+		}
+	}
 </script>
 
 <svelte:head>
@@ -103,19 +182,7 @@
 	{/if}
 
 	<section class="rounded-[20px] border border-emerald-900/10 bg-white/90 p-3 shadow-sm">
-		<form
-			method="POST"
-			action="?/consult"
-			class="space-y-3"
-			use:enhance={() => {
-				submitting = true;
-				savedIdLocal = null;
-				return async ({ update }) => {
-					await update({ reset: false });
-					submitting = false;
-				};
-			}}
-		>
+		<form onsubmit={submitStream} class="space-y-3">
 			<div>
 				<p class="text-[10px] font-bold tracking-wider text-slate-500 uppercase">Rentang waktu</p>
 				<div class="mt-2 grid grid-cols-5 gap-1.5">
@@ -173,7 +240,7 @@
 			>
 				{#if submitting}
 					<Loader2 size={15} class="animate-spin" aria-hidden="true" />
-					Memproses...
+					{streamedAnswer ? 'Menerima jawaban...' : 'Memproses...'}
 				{:else}
 					<Send size={15} aria-hidden="true" />
 					Konsultasikan
@@ -218,7 +285,7 @@
 		{/if}
 	</section>
 
-	{#if submitting}
+	{#if submitting && !streamedAnswer && !errorMessage}
 		<section
 			class="rounded-[20px] border border-emerald-900/10 bg-white p-4 shadow-[0_18px_45px_rgba(16,35,29,0.10)]"
 		>
@@ -244,11 +311,6 @@
 					<div class="skeleton h-2.5 w-10/12 rounded"></div>
 					<div class="skeleton h-2.5 w-8/12 rounded"></div>
 				</div>
-				<div class="skeleton h-3 w-32 rounded"></div>
-				<div class="space-y-1.5">
-					<div class="skeleton h-2.5 w-full rounded"></div>
-					<div class="skeleton h-2.5 w-9/12 rounded"></div>
-				</div>
 			</div>
 			<p class="mt-4 flex items-center gap-1.5 text-[11px] text-slate-500">
 				<Loader2 size={11} class="animate-spin" aria-hidden="true" />
@@ -257,13 +319,13 @@
 		</section>
 	{/if}
 
-	{#if !submitting && form?.message && form?.action === 'consult' && !answer}
+	{#if errorMessage}
 		<div class="rounded-[20px] border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs text-rose-900">
-			{form.message}
+			{errorMessage}
 		</div>
 	{/if}
 
-	{#if !submitting && answer}
+	{#if streamedAnswer}
 		<section
 			class="rounded-[20px] border border-emerald-900/10 bg-white p-4 shadow-[0_18px_45px_rgba(16,35,29,0.10)]"
 		>
@@ -275,73 +337,93 @@
 						<Sparkles size={14} aria-hidden="true" />
 					</span>
 					<div>
-						<p class="text-[10px] font-bold tracking-wider text-emerald-700/80 uppercase">
+						<p class="flex items-center gap-1.5 text-[10px] font-bold tracking-wider text-emerald-700/80 uppercase">
 							Saran AI
+							{#if submitting}
+								<span
+									class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700 normal-case tracking-normal"
+								>
+									<Loader2 size={9} class="animate-spin" aria-hidden="true" />
+									live
+								</span>
+							{/if}
 						</p>
 						<p class="text-[11px] text-slate-500">
-							{answerRange ?? ''}
-							{#if typeof answerCount === 'number'}
-								· {answerCount} transaksi
+							{answerMeta?.rangeLabel ?? ''}
+							{#if answerMeta && typeof answerMeta.transactionCount === 'number'}
+								· {answerMeta.transactionCount} transaksi
 							{/if}
 						</p>
 					</div>
 				</div>
 
-				{#if !isSaved}
-					<form
-						method="POST"
-						action="?/saveNote"
-						use:enhance={() => {
-							saving = true;
-							return async ({ result, update }) => {
-								if (result.type === 'success') {
-									const data = result.data as Record<string, unknown> | undefined;
-									savedIdLocal = (data?.savedNoteId as string | undefined) ?? 'saved';
-									toast.success('Catatan AI disimpan.');
-								} else if (result.type === 'failure') {
-									const data = result.data as Record<string, unknown> | undefined;
-									toast.error(
-										typeof data?.message === 'string' ? data.message : 'Gagal menyimpan.'
-									);
-								} else if (result.type === 'error') {
-									toast.error(result.error?.message ?? 'Gagal menyimpan.');
-								}
-								await update({ reset: false });
-								saving = false;
-							};
-						}}
-					>
-						<input type="hidden" name="answer" value={answer} />
-						<input type="hidden" name="prompt" value={answerPrompt ?? ''} />
-						<input type="hidden" name="range" value={answerRangeKey ?? range} />
-						<input type="hidden" name="rangeLabel" value={answerRange ?? ''} />
-						<input type="hidden" name="transactionCount" value={String(answerCount ?? 0)} />
-						<button
-							type="submit"
-							disabled={saving}
-							class="inline-flex items-center gap-1 rounded-full bg-[#10231d] px-2.5 py-1 text-[10px] font-bold text-white shadow-sm transition active:scale-[0.97] disabled:opacity-60"
+				{#if streamDone && !submitting}
+					{#if !savedIdLocal}
+						<form
+							method="POST"
+							action="?/saveNote"
+							use:enhance={() => {
+								saving = true;
+								return async ({ result, update }) => {
+									if (result.type === 'success') {
+										const data = result.data as Record<string, unknown> | undefined;
+										savedIdLocal = (data?.savedNoteId as string | undefined) ?? 'saved';
+										toast.success('Catatan AI disimpan.');
+									} else if (result.type === 'failure') {
+										const data = result.data as Record<string, unknown> | undefined;
+										toast.error(
+											typeof data?.message === 'string' ? data.message : 'Gagal menyimpan.'
+										);
+									} else if (result.type === 'error') {
+										toast.error(result.error?.message ?? 'Gagal menyimpan.');
+									}
+									await update({ reset: false });
+									saving = false;
+								};
+							}}
 						>
-							{#if saving}
-								<Loader2 size={11} class="animate-spin" aria-hidden="true" />
-							{:else}
-								<Bookmark size={11} aria-hidden="true" />
-							{/if}
-							Simpan
-						</button>
-					</form>
-				{:else}
-					<a
-						href={resolve('/consult/history')}
-						class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700 transition active:scale-[0.97]"
-					>
-						<Bookmark size={11} aria-hidden="true" />
-						Tersimpan
-					</a>
+							<input type="hidden" name="answer" value={streamedAnswer} />
+							<input type="hidden" name="prompt" value={answerMeta?.prompt ?? ''} />
+							<input type="hidden" name="range" value={answerMeta?.range ?? range} />
+							<input type="hidden" name="rangeLabel" value={answerMeta?.rangeLabel ?? ''} />
+							<input
+								type="hidden"
+								name="transactionCount"
+								value={String(answerMeta?.transactionCount ?? 0)}
+							/>
+							<button
+								type="submit"
+								disabled={saving}
+								class="inline-flex items-center gap-1 rounded-full bg-[#10231d] px-2.5 py-1 text-[10px] font-bold text-white shadow-sm transition active:scale-[0.97] disabled:opacity-60"
+							>
+								{#if saving}
+									<Loader2 size={11} class="animate-spin" aria-hidden="true" />
+								{:else}
+									<Bookmark size={11} aria-hidden="true" />
+								{/if}
+								Simpan
+							</button>
+						</form>
+					{:else}
+						<a
+							href={resolve('/consult/history')}
+							class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700 transition active:scale-[0.97]"
+						>
+							<Bookmark size={11} aria-hidden="true" />
+							Tersimpan
+						</a>
+					{/if}
 				{/if}
 			</div>
 
 			<article class="markdown mt-3 space-y-2 text-sm">
-				{@html renderMarkdown(answer)}
+				{@html renderMarkdown(streamedAnswer)}
+				{#if submitting}
+					<span
+						class="inline-block size-2 translate-y-[1px] animate-pulse rounded-full bg-emerald-700 align-middle"
+						aria-hidden="true"
+					></span>
+				{/if}
 			</article>
 			<div class="mt-3 flex items-center gap-1.5 text-[10px] text-slate-400">
 				<ArrowUpRight size={11} aria-hidden="true" />

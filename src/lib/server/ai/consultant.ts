@@ -5,7 +5,7 @@ import {
 } from '$lib/server/db/transactions';
 import { formatCurrency } from '$lib/shared/money';
 
-import { createDeepSeekTextCompletion } from './deepseek';
+import { createDeepSeekTextCompletion, createDeepSeekTextStream } from './deepseek';
 
 export type ConsultRange = 'week' | 'month' | 'quarter' | 'year' | 'all';
 
@@ -90,7 +90,7 @@ function formatDate(timestamp: number) {
 	}).format(new Date(timestamp));
 }
 
-export async function askFinancialConsultant(context: ConsultContext, userPrompt: string) {
+function buildConsultantPrompts(context: ConsultContext, userPrompt: string) {
 	const summaryLines: string[] = [
 		`Rentang: ${context.rangeLabel} (${formatDate(context.from)} - ${formatDate(context.to)})`,
 		`Jumlah transaksi: ${context.transactionCount}`,
@@ -126,9 +126,19 @@ Susun jawaban dengan struktur:
 4. **Proyeksi** (estimasi keuangan ke depan jika pola ini terus / kalau dikurangi).
 5. **Catatan akhir** (1 kalimat motivasi atau peringatan).
 
-Jangan mengarang angka. Berbasis data berikut. Kalau data kurang, bilang.`;
+Selesaikan SEMUA bagian sampai tuntas. Jangan mengarang angka. Berbasis data berikut. Kalau data kurang, bilang.`;
 
 	const userContent = `DATA KEUANGAN:\n${summaryLines.join('\n')}\n\nPERTANYAAN:\n${userPrompt.trim() || 'Berikan analisis menyeluruh dan rekomendasi terbaik untuk keuangan saya.'}`;
 
-	return createDeepSeekTextCompletion(systemPrompt, userContent, { maxTokens: 1600 });
+	return { systemPrompt, userContent };
+}
+
+export async function askFinancialConsultant(context: ConsultContext, userPrompt: string) {
+	const { systemPrompt, userContent } = buildConsultantPrompts(context, userPrompt);
+	return createDeepSeekTextCompletion(systemPrompt, userContent);
+}
+
+export function streamFinancialConsultant(context: ConsultContext, userPrompt: string) {
+	const { systemPrompt, userContent } = buildConsultantPrompts(context, userPrompt);
+	return createDeepSeekTextStream(systemPrompt, userContent);
 }
