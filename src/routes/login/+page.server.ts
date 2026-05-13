@@ -6,12 +6,16 @@ import { verifyPassword } from '$lib/server/security/password';
 import { createSessionToken, setSessionCookie } from '$lib/server/security/session';
 
 export const load: PageServerLoad = async ({ url }) => {
-	if (!hasPassword()) {
+	const passwordConfigured = hasPassword();
+	const passkeyCount = countPasskeys();
+
+	if (!passwordConfigured && passkeyCount === 0) {
 		throw redirect(303, '/profile');
 	}
 
 	return {
-		passkeyCount: countPasskeys(),
+		passwordConfigured,
+		passkeyCount,
 		redirectTo: url.searchParams.get('redirectTo') ?? '/'
 	};
 };

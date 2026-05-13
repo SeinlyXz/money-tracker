@@ -8,6 +8,7 @@ const PASSWORD_HASH_KEY = 'password_hash';
 const PASSKEY_CHALLENGE_KEY = 'passkey_registration_challenge';
 const PASSKEY_AUTH_CHALLENGE_KEY = 'passkey_authentication_challenge';
 const SESSION_SECRET_KEY = 'session_secret';
+const USER_NAME_KEY = 'user_name';
 
 export function getSetting(key: string) {
 	return db.select().from(appSettings).where(eq(appSettings.key, key)).get();
@@ -49,6 +50,19 @@ export function getPasskeyAuthChallenge() {
 
 export function setPasskeyAuthChallenge(challenge: string) {
 	setSetting(PASSKEY_AUTH_CHALLENGE_KEY, challenge);
+}
+
+export function getUserName() {
+	return getSetting(USER_NAME_KEY)?.value ?? null;
+}
+
+export function setUserName(value: string) {
+	const trimmed = value.trim();
+	if (!trimmed) {
+		db.delete(appSettings).where(eq(appSettings.key, USER_NAME_KEY)).run();
+		return;
+	}
+	setSetting(USER_NAME_KEY, trimmed);
 }
 
 export function getSessionSecret() {

@@ -55,6 +55,7 @@
 		hasDeepSeekKey={data.hasDeepSeekKey}
 		summary={data.summary}
 		monthLabel={data.monthLabel}
+		userName={data.userName}
 	/>
 	<ApiKeyNotice hasDeepSeekKey={data.hasDeepSeekKey} />
 

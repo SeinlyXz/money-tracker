@@ -1,13 +1,20 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
-import { countPasskeys, hasPassword, setPasswordHash } from '$lib/server/db/security';
+import {
+	countPasskeys,
+	getUserName,
+	hasPassword,
+	setPasswordHash,
+	setUserName
+} from '$lib/server/db/security';
 import { hashPassword } from '$lib/server/security/password';
 import { createSessionToken, setSessionCookie } from '$lib/server/security/session';
 
 export const load: PageServerLoad = async () => ({
 	passwordConfigured: hasPassword(),
-	passkeyCount: countPasskeys()
+	passkeyCount: countPasskeys(),
+	userName: getUserName()
 });
 
 export const actions: Actions = {
@@ -36,6 +43,24 @@ export const actions: Actions = {
 		return {
 			action: 'setPassword',
 			message: 'Password berhasil disimpan.'
+		};
+	},
+	setName: async ({ request }) => {
+		const formData = await request.formData();
+		const name = String(formData.get('name') ?? '').trim();
+
+		if (name.length > 40) {
+			return fail(400, {
+				action: 'setName',
+				message: 'Nama maksimal 40 karakter.'
+			});
+		}
+
+		setUserName(name);
+
+		return {
+			action: 'setName',
+			message: name ? `Nama disimpan: ${name}.` : 'Nama dihapus.'
 		};
 	}
 };

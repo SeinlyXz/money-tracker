@@ -12,12 +12,12 @@
 		if (HIDDEN_NAV_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))) {
 			return true;
 		}
-		return page.data.passwordConfigured === false;
+		return page.data.hasCredential === false;
 	});
 </script>
 
 <div
-	class={['min-h-screen text-[#10231d]', hideNav ? 'pb-0' : 'pb-24 sm:pb-28']}
+	class={['min-h-screen text-[#10231d]', hideNav ? 'pb-0' : 'pb-20 sm:pb-24']}
 	style="padding-top: env(safe-area-inset-top);"
 >
 	{@render children()}

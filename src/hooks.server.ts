@@ -1,6 +1,6 @@
 import { redirect, type Handle } from '@sveltejs/kit';
 
-import { hasPassword } from '$lib/server/db/security';
+import { countPasskeys, hasPassword } from '$lib/server/db/security';
 import { SESSION_COOKIE, verifySessionToken } from '$lib/server/security/session';
 
 const PUBLIC_PATHS = ['/login', '/api/passkeys/authenticate'];
@@ -14,10 +14,10 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const token = event.cookies.get(SESSION_COOKIE);
 	event.locals.authenticated = verifySessionToken(token);
 
-	const passwordSet = hasPassword();
+	const hasCredential = hasPassword() || countPasskeys() > 0;
 	const pathname = event.url.pathname;
 
-	if (!passwordSet) {
+	if (!hasCredential) {
 		if (!matchesPath(pathname, ONBOARDING_ALLOWED_PATHS)) {
 			throw redirect(303, '/profile');
 		}

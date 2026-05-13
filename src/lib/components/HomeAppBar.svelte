@@ -13,12 +13,14 @@
 	let {
 		hasDeepSeekKey = false,
 		summary = { monthlyExpense: 0, monthlyIncome: 0, monthlyBalance: 0 },
-		monthLabel = ''
+		monthLabel = '',
+		userName = null
 	}: {
 		hasDeepSeekKey?: boolean;
 		summary?: Summary;
 		monthLabel?: string;
 		monthlyTransactionCount?: number;
+		userName?: string | null;
 	} = $props();
 
 	const now = new Date();
@@ -48,7 +50,7 @@
 		<div class="flex items-center justify-between gap-3">
 			<div class="min-w-0">
 				<p class="text-[11px] font-semibold tracking-wider text-emerald-700/80 uppercase">
-					{greeting}
+					{greeting}{userName ? `, ${userName}` : ''}
 				</p>
 				<p class="truncate text-base font-bold text-[#10231d]">{dateLabel}</p>
 			</div>
