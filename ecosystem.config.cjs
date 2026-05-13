@@ -15,7 +15,7 @@ module.exports = {
 				HOST: '0.0.0.0',
 				PORT: 3022,
 				ORIGIN: 'http://localhost:3022',
-				BODY_SIZE_LIMIT: '1mb',
+				BODY_SIZE_LIMIT: 1048576,
 				DEEPSEEK_API_KEY: '',
 				DEEPSEEK_BASE_URL: 'https://api.deepseek.com',
 				DEEPSEEK_MODEL: 'deepseek-v4-flash',
