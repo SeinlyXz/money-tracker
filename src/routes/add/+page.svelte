@@ -19,7 +19,6 @@
 		hasDeepSeekKey={data.hasDeepSeekKey}
 	/>
 
-	<ApiKeyNotice hasDeepSeekKey={data.hasDeepSeekKey} />
 	<FlashMessage {form} />
 	<QuickAddForm />
 	<ManualTransactionForm today={data.today} />

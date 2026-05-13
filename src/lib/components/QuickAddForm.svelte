@@ -7,12 +7,6 @@
 
 	let quickPrompt = $state('');
 	let pending = $state(false);
-
-	const quickExamples = [
-		'kopi 25k tadi pagi',
-		'gaji freelance 2jt hari ini',
-		'grab ke kantor 38.500 kemarin'
-	];
 </script>
 
 <form
@@ -45,19 +39,6 @@
 		};
 	}}
 >
-	<div class="flex flex-wrap gap-1.5">
-		{#each quickExamples as example (example)}
-			<button
-				type="button"
-				disabled={pending}
-				class="rounded-full border border-emerald-900/10 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800 transition hover:border-emerald-500 hover:bg-emerald-100 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-				onclick={() => (quickPrompt = example)}
-			>
-				{example}
-			</button>
-		{/each}
-	</div>
-
 	<div class="flex items-center gap-2">
 		<input
 			id="prompt"

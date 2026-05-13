@@ -60,10 +60,10 @@
 		<a
 			href={resolve('/transactions')}
 			class={[
-				'rounded-full border px-3 py-1 text-xs font-semibold transition',
+				'rounded-full border px-3 py-1.5 text-xs transition',
 				!typeFilter
-					? 'border-[#10231d] bg-[#10231d] text-white'
-					: 'border-emerald-900/10 bg-white/80 text-slate-600 hover:bg-white'
+					? 'border-[#10231d] bg-[#10231d] font-bold text-white shadow-sm'
+					: 'border-emerald-900/10 bg-white/80 font-semibold text-slate-600 hover:bg-white'
 			]}
 		>
 			Semua
@@ -71,10 +71,10 @@
 		<a
 			href={resolve('/transactions') + '?type=income'}
 			class={[
-				'rounded-full border px-3 py-1 text-xs font-semibold transition',
+				'rounded-full border px-3 py-1.5 text-xs transition',
 				typeFilter === 'income'
-					? 'border-emerald-700 bg-emerald-700 text-white'
-					: 'border-emerald-900/10 bg-white/80 text-emerald-800 hover:bg-white'
+					? 'border-emerald-700 bg-emerald-700 font-bold text-white shadow-sm'
+					: 'border-emerald-900/10 bg-white/80 font-semibold text-slate-600 hover:bg-white'
 			]}
 		>
 			Pemasukan
@@ -82,10 +82,10 @@
 		<a
 			href={resolve('/transactions') + '?type=expense'}
 			class={[
-				'rounded-full border px-3 py-1 text-xs font-semibold transition',
+				'rounded-full border px-3 py-1.5 text-xs transition',
 				typeFilter === 'expense'
-					? 'border-rose-700 bg-rose-700 text-white'
-					: 'border-emerald-900/10 bg-white/80 text-rose-800 hover:bg-white'
+					? 'border-rose-700 bg-rose-700 font-bold text-white shadow-sm'
+					: 'border-emerald-900/10 bg-white/80 font-semibold text-slate-600 hover:bg-white'
 			]}
 		>
 			Pengeluaran

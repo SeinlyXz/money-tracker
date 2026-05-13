@@ -23,18 +23,5 @@
 				<p class="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{description}</p>
 			{/if}
 		</div>
-
-		{#if hasDeepSeekKey !== undefined}
-			<div class="grid grid-cols-2 gap-2 text-sm sm:flex">
-				<div class="rounded-[8px] border border-emerald-900/10 bg-white/85 px-3 py-2 shadow-sm">
-					<p class="text-slate-500">SQLite</p>
-					<p class="font-semibold text-[#10231d]">Local</p>
-				</div>
-				<div class="rounded-[8px] border border-emerald-900/10 bg-white/85 px-3 py-2 shadow-sm">
-					<p class="text-slate-500">DeepSeek</p>
-					<p class="font-semibold text-[#10231d]">{hasDeepSeekKey ? 'Aktif' : 'Butuh API key'}</p>
-				</div>
-			</div>
-		{/if}
 	</div>
 </header>
