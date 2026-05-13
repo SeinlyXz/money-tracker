@@ -8,6 +8,8 @@ import {
 	type TransactionType
 } from '$lib/shared/money';
 
+import type { TransactionItem } from '$lib/server/db/transactions';
+
 import { createDeepSeekJsonCompletion } from './deepseek';
 
 export type ParsedMoneyInput = {
@@ -17,6 +19,7 @@ export type ParsedMoneyInput = {
 	category: string;
 	merchant: string | null;
 	note: string | null;
+	items: TransactionItem[];
 	occurredAt: number;
 	confidence: number;
 };
@@ -28,6 +31,7 @@ type AiMoneyJson = {
 	category?: unknown;
 	merchant?: unknown;
 	note?: unknown;
+	items?: unknown;
 	occurredOn?: unknown;
 	confidence?: unknown;
 };
@@ -60,6 +64,10 @@ Format JSON wajib:
       "category": "Makan",
       "merchant": "nama tempat atau null",
       "note": "catatan tambahan atau null",
+      "items": [
+        { "name": "sabun cuci muka", "qty": 1, "price": 0 },
+        { "name": "ATK", "qty": 1, "price": 0 }
+      ],
       "occurredOn": "${today}",
       "confidence": 0.9
     }
@@ -74,7 +82,14 @@ Aturan:
 - type "expense" atau "income"; default expense kecuali jelas pemasukan/gaji/bonus/refund/terima/masuk -> income.
 - Jika tanggal tidak disebut, pakai ${today}.
 - Jika ambigu, tetap buat tebakan terbaik dan turunkan confidence.
-- "transactions" wajib array, minimal 1 elemen.`;
+- "transactions" wajib array, minimal 1 elemen.
+
+Aturan items (rincian barang dibeli):
+- Jika user menyebut beberapa barang dalam satu transaksi (contoh "beli sabun cuci muka dan ATK 150rb"), pecah jadi items terpisah: [{name:"sabun cuci muka", qty:1, price:0}, {name:"ATK", qty:1, price:0}].
+- Hanya isi price jika user menyebut harga per item ("kopi 25k dan roti 15k" -> price masing-masing 25000, 15000). Kalau cuma total disebut, set price 0 supaya user isi sendiri nanti.
+- qty default 1 kecuali user sebut jumlah (mis "beli 2 botol air").
+- Untuk income atau transaksi single (mis "gaji 5jt", "kopi 25k"), items boleh array kosong [].
+- Hindari masukin items kalau cuma satu barang ya sudah jadi title.`;
 
 	const raw = await createDeepSeekJsonCompletion(systemPrompt, trimmed);
 	const parsed = JSON.parse(raw) as AiMoneyEnvelope | AiMoneyJson;
@@ -114,6 +129,7 @@ function normalizeParsedMoney(parsed: AiMoneyJson, fallbackTitle: string): Parse
 		typeof parsed.occurredOn === 'string' ? parsed.occurredOn.slice(0, 10) : null
 	);
 	const confidence = Number(parsed.confidence);
+	const items = normalizeItems(parsed.items, amount);
 
 	return {
 		title: title.slice(0, 80),
@@ -122,9 +138,42 @@ function normalizeParsedMoney(parsed: AiMoneyJson, fallbackTitle: string): Parse
 		category: normalizeCategory(parsed.category),
 		merchant: cleanAiString(parsed.merchant),
 		note: cleanAiString(parsed.note),
+		items,
 		occurredAt,
 		confidence: Number.isFinite(confidence) ? Math.min(1, Math.max(0, confidence)) : 0.5
 	};
+}
+
+function normalizeItems(raw: unknown, totalAmount: number): TransactionItem[] {
+	if (!Array.isArray(raw)) return [];
+	const items: TransactionItem[] = [];
+	for (const entry of raw) {
+		if (!entry || typeof entry !== 'object') continue;
+		const obj = entry as Record<string, unknown>;
+		const name = typeof obj.name === 'string' ? obj.name.trim() : '';
+		if (!name) continue;
+		const qty = Number(obj.qty);
+		const price = Number(obj.price);
+		items.push({
+			name: name.slice(0, 80),
+			qty: Number.isFinite(qty) && qty > 0 ? Math.round(qty) : 1,
+			price: Number.isFinite(price) && price >= 0 ? Math.round(price) : 0
+		});
+	}
+
+	if (items.length <= 1) return items.length === 1 ? [] : items;
+
+	const subtotal = items.reduce((sum, item) => sum + item.qty * item.price, 0);
+	if (subtotal === 0 && totalAmount > 0) {
+		const split = Math.floor(totalAmount / items.length);
+		const remainder = totalAmount - split * items.length;
+		return items.map((item, index) => ({
+			...item,
+			price: split + (index === items.length - 1 ? remainder : 0)
+		}));
+	}
+
+	return items;
 }
 
 function inferType(input: string): TransactionType {

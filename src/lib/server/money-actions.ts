@@ -36,6 +36,7 @@ export async function quickAddAction({ request }: RequestEvent) {
 				category: parsed.category,
 				merchant: parsed.merchant,
 				note: parsed.note,
+				items: parsed.items,
 				sourceText: prompt,
 				occurredAt: parsed.occurredAt
 			});

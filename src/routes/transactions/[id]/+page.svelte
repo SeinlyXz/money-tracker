@@ -325,7 +325,32 @@
 
 		{#if !editing && transaction.note}
 			<div class="border-t border-dashed border-emerald-900/15 px-4 py-3">
-				<p class="text-[10px] font-bold tracking-wider text-slate-500 uppercase">Catatan</p>
+				<div class="flex items-center justify-between gap-2">
+					<p class="text-[10px] font-bold tracking-wider text-slate-500 uppercase">Catatan</p>
+					<form
+						method="POST"
+						action="?/deleteNote"
+						use:enhance={() => {
+							return async ({ result }) => {
+								if (result.type === 'success') {
+									toast.success('Catatan dihapus.');
+									await invalidate('app:transactions');
+								} else if (result.type === 'failure' || result.type === 'error') {
+									toast.error('Gagal menghapus catatan.');
+								}
+							};
+						}}
+					>
+						<button
+							type="submit"
+							class="inline-flex items-center gap-1 rounded-full border border-rose-100 bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-600 transition active:scale-[0.97]"
+							aria-label="Hapus catatan"
+						>
+							<X size={10} aria-hidden="true" />
+							Hapus
+						</button>
+					</form>
+				</div>
 				<p class="mt-1 text-xs whitespace-pre-wrap text-slate-700">{transaction.note}</p>
 			</div>
 		{/if}

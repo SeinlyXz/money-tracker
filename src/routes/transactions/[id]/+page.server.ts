@@ -65,6 +65,15 @@ export const actions: Actions = {
 			return fail(500, { action: 'saveItems', message });
 		}
 	},
+	deleteNote: async ({ params }: RequestEvent) => {
+		try {
+			updateTransactionNote(params.id!, null);
+			return { action: 'deleteNote', message: 'Catatan dihapus.' };
+		} catch (err) {
+			const message = err instanceof Error ? err.message : 'Gagal menghapus catatan.';
+			return fail(500, { action: 'deleteNote', message });
+		}
+	},
 	delete: async ({ params }: RequestEvent) => {
 		deleteTransaction(params.id!);
 		throw redirect(303, '/transactions');
