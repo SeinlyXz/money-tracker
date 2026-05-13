@@ -4,7 +4,10 @@
 	let { children } = $props();
 </script>
 
-<div class="min-h-screen pb-24 text-[#10231d] sm:pb-28">
+<div
+	class="min-h-screen pb-24 text-[#10231d] sm:pb-28"
+	style="padding-top: env(safe-area-inset-top);"
+>
 	{@render children()}
 </div>
 

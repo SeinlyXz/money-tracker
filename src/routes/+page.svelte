@@ -9,27 +9,19 @@
 
 	let { data } = $props();
 
-	let scrollEl: HTMLDivElement | null = $state(null);
-
 	onMount(() => {
 		navVisibility.autoHide = true;
 		navVisibility.visible = true;
 
-		let lastWinY = window.scrollY;
-		let lastBoxY = scrollEl?.scrollTop ?? 0;
+		let lastY = window.scrollY;
 		let ticking = false;
 
 		const handle = () => {
-			const winY = window.scrollY;
-			const boxY = scrollEl?.scrollTop ?? 0;
-			const winDelta = winY - lastWinY;
-			const boxDelta = boxY - lastBoxY;
-			const delta = Math.abs(winDelta) > Math.abs(boxDelta) ? winDelta : boxDelta;
-			const y = Math.max(winY, boxY);
-			if (Math.abs(delta) > 6) {
-				navVisibility.visible = delta < 0 || y < 12;
-				lastWinY = winY;
-				lastBoxY = boxY;
+			const y = window.scrollY;
+			const delta = y - lastY;
+			if (Math.abs(delta) > 8) {
+				navVisibility.visible = delta < 0 || y < 16;
+				lastY = y;
 			}
 			ticking = false;
 		};
@@ -42,11 +34,9 @@
 		};
 
 		window.addEventListener('scroll', onScroll, { passive: true });
-		scrollEl?.addEventListener('scroll', onScroll, { passive: true });
 
 		return () => {
 			window.removeEventListener('scroll', onScroll);
-			scrollEl?.removeEventListener('scroll', onScroll);
 			navVisibility.autoHide = false;
 			navVisibility.visible = true;
 		};
@@ -58,7 +48,7 @@
 </svelte:head>
 
 <main
-	class="mx-auto flex h-[100dvh] w-full max-w-7xl flex-col gap-4 px-4 pt-4 sm:px-6 lg:px-8"
+	class="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 sm:px-6 lg:px-8"
 	style="padding-bottom: calc(11rem + env(safe-area-inset-bottom));"
 >
 	<HomeAppBar
@@ -69,9 +59,7 @@
 	/>
 	<ApiKeyNotice hasDeepSeekKey={data.hasDeepSeekKey} />
 
-	<div bind:this={scrollEl} class="max-h-[calc(100dvh-30rem)] overflow-y-auto rounded-[28px]">
-		<TransactionList transactions={data.transactions} compact />
-	</div>
+	<TransactionList transactions={data.transactions} compact />
 </main>
 
 <div

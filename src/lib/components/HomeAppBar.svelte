@@ -42,10 +42,11 @@
 </script>
 
 <header
-	class="sticky top-0 z-20 -mx-4 bg-gradient-to-b from-[#eef5ee] via-[#eef5ee]/90 to-transparent px-4 pt-4 pb-3 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+	class="sticky z-20 -mx-4 bg-gradient-to-b from-[#eef5ee] via-[#eef5ee]/90 to-transparent px-4 pt-2 pb-3 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+	style="top: env(safe-area-inset-top);"
 >
 	<div
-		class="rounded-[28px] border border-emerald-900/10 bg-white/85 px-4 py-4 shadow-[0_22px_55px_rgba(16,35,29,0.08)] backdrop-blur-xl sm:px-5"
+		class="rounded-[24px] border border-emerald-900/10 bg-white/85 px-4 py-3 shadow-[0_22px_55px_rgba(16,35,29,0.08)] backdrop-blur-xl sm:px-5"
 	>
 		<div class="flex items-center justify-between gap-3">
 			<div class="min-w-0">
@@ -80,7 +81,7 @@
 		<button
 			type="button"
 			onclick={() => goto('/insights')}
-			class="mt-3.5 flex w-full items-center justify-between gap-3 rounded-2xl bg-gradient-to-br from-[#10231d] via-[#13362b] to-[#1d4d3c] px-4 py-3 text-left text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition active:scale-[0.99]"
+			class="mt-3 flex w-full items-center justify-between gap-3 rounded-2xl bg-gradient-to-br from-[#10231d] via-[#13362b] to-[#1d4d3c] px-4 py-2.5 text-left text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition active:scale-[0.99]"
 		>
 			<div class="min-w-0">
 				<p class="text-[10px] font-semibold tracking-[0.18em] text-white/55 uppercase">
@@ -88,20 +89,20 @@
 				</p>
 				<p
 					class={[
-						'mt-0.5 truncate text-2xl leading-tight font-black tracking-tight',
+						'mt-0.5 truncate text-xl leading-tight font-black tracking-tight',
 						balancePositive ? 'text-emerald-200' : 'text-rose-200'
 					]}
 				>
 					{formatCurrency(summary.monthlyBalance)}
 				</p>
-				<p class="mt-1 text-[11px] font-medium text-white/55">
+				<p class="mt-0.5 text-[11px] font-medium text-white/55">
 					{monthlyTransactionCount} transaksi bulan ini
 				</p>
 			</div>
 			<span
-				class="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-white/10 backdrop-blur"
+				class="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-white/10 backdrop-blur"
 			>
-				<Wallet size={19} aria-hidden="true" />
+				<Wallet size={18} aria-hidden="true" />
 			</span>
 		</button>
 
