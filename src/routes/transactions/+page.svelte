@@ -49,10 +49,7 @@
 </svelte:head>
 
 <main class="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 pt-5 pb-2 sm:px-6 lg:px-8">
-	<PageHeader
-		title="Transaksi"
-		description="Riwayat pemasukan dan pengeluaran terbaru. Data tersimpan lokal di SQLite."
-	/>
+	<PageHeader title="Transaksi" />
 
 	<FlashMessage {form} />
 

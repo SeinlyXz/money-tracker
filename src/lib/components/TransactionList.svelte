@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { invalidate } from '$app/navigation';
-	import { ArrowDownLeft, ArrowUpRight, Loader2, Trash2 } from 'lucide-svelte';
+	import { resolve } from '$app/paths';
+	import { ArrowDownLeft, ArrowUpRight, ChevronRight, Loader2, Trash2 } from 'lucide-svelte';
 	import { onMount } from 'svelte';
 	import { flip } from 'svelte/animate';
 	import { fly } from 'svelte/transition';
@@ -84,9 +85,13 @@
 					<article
 						in:fly|global={mounted ? { y: -12, duration: 320 } : { duration: 0 }}
 						animate:flip={{ duration: 280 }}
-						class="grid gap-2 px-3 py-2 sm:grid-cols-[1fr_auto] sm:items-center sm:px-4"
+						class="group relative flex items-center gap-2 px-3 py-2 transition active:bg-emerald-50/40 sm:px-4"
 					>
-						<div class="flex min-w-0 gap-2">
+						<a
+							href={resolve(`/transactions/${transaction.id}`)}
+							class="flex min-w-0 flex-1 items-center gap-2"
+							aria-label={`Detail ${transaction.title}`}
+						>
 							<span
 								class={[
 									'flex size-8 shrink-0 items-center justify-center rounded-lg',
@@ -130,53 +135,57 @@
 									{/if}
 								</p>
 							</div>
-						</div>
 
-						<div class="flex items-center justify-between gap-2 sm:justify-end">
 							<p
 								class={[
-									'text-right text-sm font-bold',
+									'shrink-0 text-right text-sm font-bold whitespace-nowrap',
 									transaction.type === 'expense' ? 'text-rose-700' : 'text-emerald-700'
 								]}
 							>
 								{transaction.type === 'expense' ? '-' : '+'}{formatCurrency(transaction.amount)}
 							</p>
-							<form
-								method="POST"
-								action="?/delete"
-								use:enhance={() => {
-									setDeleting(transaction.id, true);
-									return async ({ result }) => {
-										if (result.type === 'success') {
-											toast.success('Transaksi dihapus.');
-											await invalidate('app:transactions');
-										} else if (result.type === 'failure') {
-											const data = result.data as Record<string, unknown> | undefined;
-											toast.error(
-												typeof data?.message === 'string' ? data.message : 'Gagal menghapus.'
-											);
-										} else if (result.type === 'error') {
-											toast.error(result.error?.message ?? 'Gagal menghapus.');
-										}
-										setDeleting(transaction.id, false);
-									};
-								}}
+							<ChevronRight
+								size={14}
+								aria-hidden="true"
+								class="shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-slate-500"
+							/>
+						</a>
+
+						<form
+							method="POST"
+							action="?/delete"
+							use:enhance={() => {
+								setDeleting(transaction.id, true);
+								return async ({ result }) => {
+									if (result.type === 'success') {
+										toast.success('Transaksi dihapus.');
+										await invalidate('app:transactions');
+									} else if (result.type === 'failure') {
+										const data = result.data as Record<string, unknown> | undefined;
+										toast.error(
+											typeof data?.message === 'string' ? data.message : 'Gagal menghapus.'
+										);
+									} else if (result.type === 'error') {
+										toast.error(result.error?.message ?? 'Gagal menghapus.');
+									}
+									setDeleting(transaction.id, false);
+								};
+							}}
+						>
+							<input type="hidden" name="id" value={transaction.id} />
+							<button
+								type="submit"
+								disabled={isDeleting}
+								class="inline-flex size-7 items-center justify-center rounded-lg border border-rose-100 bg-rose-50 text-rose-600 transition hover:border-rose-300 hover:bg-rose-100 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60"
+								aria-label={`Hapus ${transaction.title}`}
 							>
-								<input type="hidden" name="id" value={transaction.id} />
-								<button
-									type="submit"
-									disabled={isDeleting}
-									class="inline-flex size-8 items-center justify-center rounded-lg border border-rose-100 bg-rose-50 text-rose-600 transition hover:border-rose-300 hover:bg-rose-100 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60"
-									aria-label={`Hapus ${transaction.title}`}
-								>
-									{#if isDeleting}
-										<Loader2 size={14} class="animate-spin" aria-hidden="true" />
-									{:else}
-										<Trash2 size={14} aria-hidden="true" />
-									{/if}
-								</button>
-							</form>
-						</div>
+								{#if isDeleting}
+									<Loader2 size={12} class="animate-spin" aria-hidden="true" />
+								{:else}
+									<Trash2 size={12} aria-hidden="true" />
+								{/if}
+							</button>
+						</form>
 					</article>
 				{/each}
 			</div>

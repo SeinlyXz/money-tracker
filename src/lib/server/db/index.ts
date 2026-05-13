@@ -22,6 +22,7 @@ sqlite.exec(`
 		category TEXT NOT NULL DEFAULT 'Lainnya',
 		merchant TEXT,
 		note TEXT,
+		items TEXT,
 		source_text TEXT,
 		occurred_at INTEGER NOT NULL,
 		created_at INTEGER NOT NULL,
@@ -29,6 +30,18 @@ sqlite.exec(`
 	);
 
 	CREATE INDEX IF NOT EXISTS transactions_occurred_at_idx ON transactions (occurred_at);
+
+	-- additive column migrations
+	`);
+
+const columns = sqlite.prepare("PRAGMA table_info('transactions')").all() as Array<{
+	name: string;
+}>;
+if (!columns.some((column) => column.name === 'items')) {
+	sqlite.exec(`ALTER TABLE transactions ADD COLUMN items TEXT;`);
+}
+
+sqlite.exec(`
 	CREATE INDEX IF NOT EXISTS transactions_type_idx ON transactions (type);
 	CREATE INDEX IF NOT EXISTS transactions_category_idx ON transactions (category);
 

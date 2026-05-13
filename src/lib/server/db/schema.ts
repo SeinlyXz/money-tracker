@@ -12,6 +12,7 @@ export const transactions = sqliteTable(
 		category: text('category').notNull().default('Lainnya'),
 		merchant: text('merchant'),
 		note: text('note'),
+		items: text('items'),
 		sourceText: text('source_text'),
 		occurredAt: integer('occurred_at').notNull(),
 		createdAt: integer('created_at').notNull(),

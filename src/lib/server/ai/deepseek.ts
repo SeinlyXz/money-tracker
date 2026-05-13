@@ -51,3 +51,43 @@ export async function createDeepSeekJsonCompletion(systemPrompt: string, userPro
 
 	return content;
 }
+
+export async function createDeepSeekTextCompletion(
+	systemPrompt: string,
+	userPrompt: string,
+	{ maxTokens = 1200 }: { maxTokens?: number } = {}
+) {
+	if (!DEEPSEEK_API_KEY) {
+		throw new Error('DEEPSEEK_API_KEY belum diset.');
+	}
+
+	const response = await fetch(`${deepSeekBaseUrl}/chat/completions`, {
+		method: 'POST',
+		headers: {
+			Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify({
+			model: deepSeekModel,
+			messages: [
+				{ role: 'system', content: systemPrompt },
+				{ role: 'user', content: userPrompt }
+			],
+			temperature: 0.5,
+			max_tokens: maxTokens
+		})
+	});
+
+	const payload = (await response.json().catch(() => null)) as ChatResponse | null;
+
+	if (!response.ok) {
+		throw new Error(payload?.error?.message ?? 'DeepSeek gagal memproses konsultasi.');
+	}
+
+	const content = payload?.choices?.[0]?.message?.content;
+	if (!content) {
+		throw new Error('DeepSeek mengembalikan respons kosong.');
+	}
+
+	return content;
+}
