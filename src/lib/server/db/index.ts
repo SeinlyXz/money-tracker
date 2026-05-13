@@ -61,6 +61,18 @@ sqlite.exec(`
 		created_at INTEGER NOT NULL,
 		updated_at INTEGER NOT NULL
 	);
+
+	CREATE TABLE IF NOT EXISTS consult_notes (
+		id TEXT PRIMARY KEY NOT NULL,
+		range TEXT NOT NULL,
+		range_label TEXT NOT NULL,
+		prompt TEXT NOT NULL DEFAULT '',
+		answer TEXT NOT NULL,
+		transaction_count INTEGER NOT NULL DEFAULT 0,
+		created_at INTEGER NOT NULL
+	);
+
+	CREATE INDEX IF NOT EXISTS consult_notes_created_at_idx ON consult_notes (created_at);
 `);
 
 export const db = drizzle(sqlite, { schema });

@@ -6,6 +6,7 @@ import {
 	buildConsultContext,
 	type ConsultRange
 } from '$lib/server/ai/consultant';
+import { createConsultNote } from '$lib/server/db/consult-notes';
 import type { PageServerLoad } from './$types';
 
 const VALID_RANGES: ConsultRange[] = ['week', 'month', 'quarter', 'year', 'all'];
@@ -67,6 +68,36 @@ export const actions: Actions = {
 		} catch (error) {
 			const message = error instanceof Error ? error.message : 'Konsultasi gagal diproses.';
 			return fail(500, { action: 'consult', message, range, prompt });
+		}
+	},
+	saveNote: async ({ request }: RequestEvent) => {
+		const formData = await request.formData();
+		const range = parseRange(formData.get('range'));
+		const rangeLabel = String(formData.get('rangeLabel') ?? '').trim() || 'Tanpa rentang';
+		const prompt = String(formData.get('prompt') ?? '').trim();
+		const answer = String(formData.get('answer') ?? '').trim();
+		const transactionCount = Number(formData.get('transactionCount'));
+
+		if (!answer) {
+			return fail(400, { action: 'saveNote', message: 'Tidak ada jawaban untuk disimpan.' });
+		}
+
+		try {
+			const note = createConsultNote({
+				range,
+				rangeLabel,
+				prompt,
+				answer,
+				transactionCount: Number.isFinite(transactionCount) ? transactionCount : 0
+			});
+			return {
+				action: 'saveNote',
+				message: 'Catatan AI disimpan.',
+				savedNoteId: note.id
+			};
+		} catch (error) {
+			const message = error instanceof Error ? error.message : 'Gagal menyimpan catatan.';
+			return fail(500, { action: 'saveNote', message });
 		}
 	}
 };

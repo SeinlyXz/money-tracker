@@ -42,8 +42,24 @@ export const passkeys = sqliteTable('passkeys', {
 	updatedAt: integer('updated_at').notNull()
 });
 
+export const consultNotes = sqliteTable(
+	'consult_notes',
+	{
+		id: text('id').primaryKey(),
+		range: text('range').notNull(),
+		rangeLabel: text('range_label').notNull(),
+		prompt: text('prompt').notNull().default(''),
+		answer: text('answer').notNull(),
+		transactionCount: integer('transaction_count').notNull().default(0),
+		createdAt: integer('created_at').notNull()
+	},
+	(table) => [index('consult_notes_created_at_idx').on(table.createdAt)]
+);
+
 export type Transaction = typeof transactions.$inferSelect;
 export type NewTransaction = typeof transactions.$inferInsert;
 export type AppSetting = typeof appSettings.$inferSelect;
 export type Passkey = typeof passkeys.$inferSelect;
 export type NewPasskey = typeof passkeys.$inferInsert;
+export type ConsultNote = typeof consultNotes.$inferSelect;
+export type NewConsultNote = typeof consultNotes.$inferInsert;

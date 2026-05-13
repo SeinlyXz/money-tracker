@@ -1,8 +1,21 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { ArrowUpRight, BadgeInfo, Brain, Loader2, Send, Sparkles, Wallet } from 'lucide-svelte';
+	import { resolve } from '$app/paths';
+	import {
+		ArrowUpRight,
+		BadgeInfo,
+		Bookmark,
+		Brain,
+		History,
+		Loader2,
+		Send,
+		Sparkles,
+		Wallet
+	} from 'lucide-svelte';
 
 	import { formatCurrency } from '$lib/shared/money';
+	import { renderMarkdown } from '$lib/shared/markdown';
+	import { toast } from '$lib/state/toast.svelte';
 
 	let { data, form } = $props();
 
@@ -24,6 +37,8 @@
 	let range = $state<(typeof ranges)[number]['value']>('month');
 	let prompt = $state('');
 	let submitting = $state(false);
+	let saving = $state(false);
+	let savedIdLocal = $state<string | null>(null);
 
 	const answer = $derived(
 		(form as Record<string, unknown> | null | undefined)?.answer as string | undefined
@@ -34,74 +49,16 @@
 	const answerCount = $derived(
 		(form as Record<string, unknown> | null | undefined)?.transactionCount as number | undefined
 	);
-
-	function renderMarkdown(md: string) {
-		const escape = (input: string) =>
-			input.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-		const blocks = md.split(/\n{2,}/);
-		const html: string[] = [];
-		for (const block of blocks) {
-			const lines = block.split('\n').map((line) => line.trimEnd());
-			if (!lines.length) continue;
-
-			const isList = lines.every((line) => /^\s*[-*]\s+/.test(line));
-			const isNumbered = lines.every((line) => /^\s*\d+\.\s+/.test(line));
-
-			if (isList) {
-				html.push(
-					'<ul class="list-disc space-y-1 pl-5">' +
-						lines
-							.map(
-								(line) => '<li>' + applyInline(escape(line.replace(/^\s*[-*]\s+/, ''))) + '</li>'
-							)
-							.join('') +
-						'</ul>'
-				);
-				continue;
-			}
-
-			if (isNumbered) {
-				html.push(
-					'<ol class="list-decimal space-y-1 pl-5">' +
-						lines
-							.map(
-								(line) => '<li>' + applyInline(escape(line.replace(/^\s*\d+\.\s+/, ''))) + '</li>'
-							)
-							.join('') +
-						'</ol>'
-				);
-				continue;
-			}
-
-			if (lines[0].startsWith('## ')) {
-				html.push(
-					`<h3 class="text-sm font-bold text-[#10231d]">${applyInline(escape(lines[0].slice(3)))}</h3>`
-				);
-				continue;
-			}
-
-			if (lines[0].startsWith('# ')) {
-				html.push(
-					`<h2 class="text-base font-bold text-[#10231d]">${applyInline(escape(lines[0].slice(2)))}</h2>`
-				);
-				continue;
-			}
-
-			html.push('<p>' + applyInline(escape(lines.join(' '))) + '</p>');
-		}
-		return html.join('\n');
-	}
-
-	function applyInline(input: string) {
-		return input
-			.replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold text-[#10231d]">$1</strong>')
-			.replace(/\*(.+?)\*/g, '<em>$1</em>')
-			.replace(
-				/`([^`]+)`/g,
-				'<code class="rounded bg-slate-100 px-1 py-0.5 text-[11px]">$1</code>'
-			);
-	}
+	const answerRangeKey = $derived(
+		(form as Record<string, unknown> | null | undefined)?.range as string | undefined
+	);
+	const answerPrompt = $derived(
+		(form as Record<string, unknown> | null | undefined)?.prompt as string | undefined
+	);
+	const savedNoteId = $derived(
+		(form as Record<string, unknown> | null | undefined)?.savedNoteId as string | undefined
+	);
+	const isSaved = $derived(Boolean(savedNoteId) || Boolean(savedIdLocal));
 </script>
 
 <svelte:head>
@@ -110,12 +67,12 @@
 
 <main class="mx-auto flex w-full max-w-2xl flex-col gap-3 px-4 pt-3 pb-24 sm:px-6">
 	<header
-		class="flex items-start gap-3 rounded-[20px] border border-emerald-900/10 bg-[#10231d] p-4 text-white shadow-[0_18px_45px_rgba(16,35,29,0.18)]"
+		class="relative flex items-start gap-3 rounded-[20px] border border-emerald-900/10 bg-[#10231d] p-4 text-white shadow-[0_18px_45px_rgba(16,35,29,0.18)]"
 	>
 		<span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-white/12">
 			<Brain size={18} aria-hidden="true" />
 		</span>
-		<div class="min-w-0 flex-1">
+		<div class="min-w-0 flex-1 pr-12">
 			<p class="text-[10px] font-bold tracking-[0.18em] text-emerald-100/80 uppercase">
 				Konsultan AI
 			</p>
@@ -124,6 +81,14 @@
 				Pilih rentang, tulis pertanyaan, dapat rekomendasi & proyeksi yang useful.
 			</p>
 		</div>
+		<a
+			href={resolve('/consult/history')}
+			class="absolute top-3 right-3 inline-flex items-center gap-1 rounded-full bg-white/12 px-2.5 py-1 text-[10px] font-bold text-white transition active:scale-[0.95]"
+			aria-label="Riwayat catatan AI"
+		>
+			<History size={11} aria-hidden="true" />
+			Riwayat
+		</a>
 	</header>
 
 	{#if !data.hasDeepSeekKey}
@@ -144,6 +109,7 @@
 			class="space-y-3"
 			use:enhance={() => {
 				submitting = true;
+				savedIdLocal = null;
 				return async ({ update }) => {
 					await update({ reset: false });
 					submitting = false;
@@ -252,33 +218,129 @@
 		{/if}
 	</section>
 
-	{#if form?.message && form?.action === 'consult' && !answer}
+	{#if submitting}
+		<section
+			class="rounded-[20px] border border-emerald-900/10 bg-white p-4 shadow-[0_18px_45px_rgba(16,35,29,0.10)]"
+		>
+			<div class="flex items-center gap-2">
+				<span class="flex size-8 items-center justify-center rounded-full bg-amber-100">
+					<Sparkles size={14} class="text-amber-700" aria-hidden="true" />
+				</span>
+				<div class="flex-1 space-y-1.5">
+					<div class="skeleton h-2.5 w-24 rounded"></div>
+					<div class="skeleton h-2 w-40 rounded"></div>
+				</div>
+			</div>
+			<div class="mt-4 space-y-3">
+				<div class="skeleton h-3 w-32 rounded"></div>
+				<div class="space-y-1.5">
+					<div class="skeleton h-2.5 w-full rounded"></div>
+					<div class="skeleton h-2.5 w-11/12 rounded"></div>
+					<div class="skeleton h-2.5 w-9/12 rounded"></div>
+				</div>
+				<div class="skeleton h-3 w-28 rounded"></div>
+				<div class="space-y-1.5">
+					<div class="skeleton h-2.5 w-full rounded"></div>
+					<div class="skeleton h-2.5 w-10/12 rounded"></div>
+					<div class="skeleton h-2.5 w-8/12 rounded"></div>
+				</div>
+				<div class="skeleton h-3 w-32 rounded"></div>
+				<div class="space-y-1.5">
+					<div class="skeleton h-2.5 w-full rounded"></div>
+					<div class="skeleton h-2.5 w-9/12 rounded"></div>
+				</div>
+			</div>
+			<p class="mt-4 flex items-center gap-1.5 text-[11px] text-slate-500">
+				<Loader2 size={11} class="animate-spin" aria-hidden="true" />
+				AI sedang menganalisis pola keuanganmu...
+			</p>
+		</section>
+	{/if}
+
+	{#if !submitting && form?.message && form?.action === 'consult' && !answer}
 		<div class="rounded-[20px] border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs text-rose-900">
 			{form.message}
 		</div>
 	{/if}
 
-	{#if answer}
+	{#if !submitting && answer}
 		<section
 			class="rounded-[20px] border border-emerald-900/10 bg-white p-4 shadow-[0_18px_45px_rgba(16,35,29,0.10)]"
 		>
-			<div class="flex items-center gap-2">
-				<span
-					class="flex size-8 items-center justify-center rounded-full bg-amber-100 text-amber-700"
-				>
-					<Sparkles size={14} aria-hidden="true" />
-				</span>
-				<div>
-					<p class="text-[10px] font-bold tracking-wider text-emerald-700/80 uppercase">Saran AI</p>
-					<p class="text-[11px] text-slate-500">
-						{answerRange ?? ''}
-						{#if typeof answerCount === 'number'}
-							· {answerCount} transaksi
-						{/if}
-					</p>
+			<div class="flex items-center justify-between gap-2">
+				<div class="flex items-center gap-2">
+					<span
+						class="flex size-8 items-center justify-center rounded-full bg-amber-100 text-amber-700"
+					>
+						<Sparkles size={14} aria-hidden="true" />
+					</span>
+					<div>
+						<p class="text-[10px] font-bold tracking-wider text-emerald-700/80 uppercase">
+							Saran AI
+						</p>
+						<p class="text-[11px] text-slate-500">
+							{answerRange ?? ''}
+							{#if typeof answerCount === 'number'}
+								· {answerCount} transaksi
+							{/if}
+						</p>
+					</div>
 				</div>
+
+				{#if !isSaved}
+					<form
+						method="POST"
+						action="?/saveNote"
+						use:enhance={() => {
+							saving = true;
+							return async ({ result, update }) => {
+								if (result.type === 'success') {
+									const data = result.data as Record<string, unknown> | undefined;
+									savedIdLocal = (data?.savedNoteId as string | undefined) ?? 'saved';
+									toast.success('Catatan AI disimpan.');
+								} else if (result.type === 'failure') {
+									const data = result.data as Record<string, unknown> | undefined;
+									toast.error(
+										typeof data?.message === 'string' ? data.message : 'Gagal menyimpan.'
+									);
+								} else if (result.type === 'error') {
+									toast.error(result.error?.message ?? 'Gagal menyimpan.');
+								}
+								await update({ reset: false });
+								saving = false;
+							};
+						}}
+					>
+						<input type="hidden" name="answer" value={answer} />
+						<input type="hidden" name="prompt" value={answerPrompt ?? ''} />
+						<input type="hidden" name="range" value={answerRangeKey ?? range} />
+						<input type="hidden" name="rangeLabel" value={answerRange ?? ''} />
+						<input type="hidden" name="transactionCount" value={String(answerCount ?? 0)} />
+						<button
+							type="submit"
+							disabled={saving}
+							class="inline-flex items-center gap-1 rounded-full bg-[#10231d] px-2.5 py-1 text-[10px] font-bold text-white shadow-sm transition active:scale-[0.97] disabled:opacity-60"
+						>
+							{#if saving}
+								<Loader2 size={11} class="animate-spin" aria-hidden="true" />
+							{:else}
+								<Bookmark size={11} aria-hidden="true" />
+							{/if}
+							Simpan
+						</button>
+					</form>
+				{:else}
+					<a
+						href={resolve('/consult/history')}
+						class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700 transition active:scale-[0.97]"
+					>
+						<Bookmark size={11} aria-hidden="true" />
+						Tersimpan
+					</a>
+				{/if}
 			</div>
-			<article class="prose prose-sm mt-3 max-w-none space-y-2 text-sm leading-6 text-slate-700">
+
+			<article class="markdown mt-3 space-y-2 text-sm">
 				{@html renderMarkdown(answer)}
 			</article>
 			<div class="mt-3 flex items-center gap-1.5 text-[10px] text-slate-400">
@@ -288,3 +350,31 @@
 		</section>
 	{/if}
 </main>
+
+<style>
+	.skeleton {
+		background: linear-gradient(90deg, #eef2ee 0%, #f6faf6 50%, #eef2ee 100%);
+		background-size: 200% 100%;
+		animation: shimmer 1.4s ease-in-out infinite;
+	}
+
+	@keyframes shimmer {
+		0% {
+			background-position: 200% 0;
+		}
+		100% {
+			background-position: -200% 0;
+		}
+	}
+
+	:global(.markdown h2),
+	:global(.markdown h3),
+	:global(.markdown h4) {
+		margin-top: 0.85rem;
+	}
+
+	:global(.markdown ul li),
+	:global(.markdown ol li) {
+		margin-bottom: 0.1rem;
+	}
+</style>
