@@ -47,7 +47,7 @@
 			placeholder="contoh: nasi padang 35k siang ini"
 			autocomplete="off"
 			disabled={pending}
-			class="min-h-11 flex-1 rounded-[20px] border border-emerald-900/10 bg-[#f7fbf7] px-4 text-sm text-[#10231d] transition outline-none placeholder:text-slate-400 focus:border-emerald-600 focus:bg-white focus:ring-4 focus:ring-emerald-600/10 disabled:opacity-60"
+			class="min-h-11 flex-1 rounded-[20px] border border-emerald-900/10 bg-[#f7fbf7] px-4 text-base text-[#10231d] transition outline-none placeholder:text-slate-400 focus:border-emerald-600 focus:bg-white focus:ring-4 focus:ring-emerald-600/10 disabled:opacity-60 sm:text-sm"
 		/>
 		<button
 			type="submit"

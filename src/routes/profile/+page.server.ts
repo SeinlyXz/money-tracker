@@ -3,19 +3,28 @@ import type { Actions, PageServerLoad } from './$types';
 
 import {
 	countPasskeys,
+	getShowNavLabels,
 	getUserName,
 	hasPassword,
 	setPasswordHash,
+	setShowNavLabels,
 	setUserName
 } from '$lib/server/db/security';
+import { buildSummary, listTransactions } from '$lib/server/db/transactions';
 import { hashPassword } from '$lib/server/security/password';
 import { createSessionToken, setSessionCookie } from '$lib/server/security/session';
 
-export const load: PageServerLoad = async () => ({
-	passwordConfigured: hasPassword(),
-	passkeyCount: countPasskeys(),
-	userName: getUserName()
-});
+export const load: PageServerLoad = async () => {
+	const summary = buildSummary(listTransactions(10000));
+	return {
+		passwordConfigured: hasPassword(),
+		passkeyCount: countPasskeys(),
+		userName: getUserName(),
+		showNavLabels: getShowNavLabels(),
+		balance: summary.totalIncome - summary.totalExpense,
+		monthlyBalance: summary.monthlyBalance
+	};
+};
 
 export const actions: Actions = {
 	setPassword: async ({ request, cookies }) => {
@@ -61,6 +70,15 @@ export const actions: Actions = {
 		return {
 			action: 'setName',
 			message: name ? `Nama disimpan: ${name}.` : 'Nama dihapus.'
+		};
+	},
+	toggleNavLabels: async ({ request }) => {
+		const formData = await request.formData();
+		const enabled = formData.get('enabled') === 'true';
+		setShowNavLabels(enabled);
+		return {
+			action: 'toggleNavLabels',
+			message: enabled ? 'Label navigasi ditampilkan.' : 'Label navigasi disembunyikan.'
 		};
 	}
 };

@@ -30,6 +30,7 @@
 	);
 
 	const hidden = $derived(navVisibility.autoHide && !navVisibility.visible);
+	const showLabels = $derived(page.data.showNavLabels !== false);
 </script>
 
 <nav
@@ -66,9 +67,11 @@
 				</span>
 				<span
 					class={[
-						'text-[10px] font-semibold transition-colors duration-200',
-						active ? 'text-[#10231d]' : 'text-neutral-400'
+						'overflow-hidden text-[10px] font-semibold transition-[max-height,opacity,margin] duration-300 ease-out',
+						active ? 'text-[#10231d]' : 'text-neutral-400',
+						showLabels ? 'mt-0 max-h-4 opacity-100' : '-mt-0.5 max-h-0 opacity-0'
 					]}
+					aria-hidden={!showLabels}
 				>
 					{item.label}
 				</span>

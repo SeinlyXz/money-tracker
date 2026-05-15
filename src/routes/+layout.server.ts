@@ -1,6 +1,11 @@
 import type { LayoutServerLoad } from './$types';
 
-import { countPasskeys, getUserName, hasPassword } from '$lib/server/db/security';
+import {
+	countPasskeys,
+	getShowNavLabels,
+	getUserName,
+	hasPassword
+} from '$lib/server/db/security';
 
 export const load: LayoutServerLoad = async ({ locals }) => {
 	const passwordConfigured = hasPassword();
@@ -11,6 +16,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 		passwordConfigured,
 		passkeyCount,
 		hasCredential: passwordConfigured || passkeyCount > 0,
-		userName: getUserName()
+		userName: getUserName(),
+		showNavLabels: getShowNavLabels()
 	};
 };

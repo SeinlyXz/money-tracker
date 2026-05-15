@@ -9,6 +9,7 @@ const PASSKEY_CHALLENGE_KEY = 'passkey_registration_challenge';
 const PASSKEY_AUTH_CHALLENGE_KEY = 'passkey_authentication_challenge';
 const SESSION_SECRET_KEY = 'session_secret';
 const USER_NAME_KEY = 'user_name';
+const SHOW_NAV_LABELS_KEY = 'show_nav_labels';
 
 export function getSetting(key: string) {
 	return db.select().from(appSettings).where(eq(appSettings.key, key)).get();
@@ -63,6 +64,18 @@ export function setUserName(value: string) {
 		return;
 	}
 	setSetting(USER_NAME_KEY, trimmed);
+}
+
+export function getShowNavLabels() {
+	const raw = getSetting(SHOW_NAV_LABELS_KEY)?.value;
+	if (raw === null || raw === undefined) {
+		return true;
+	}
+	return raw !== 'false';
+}
+
+export function setShowNavLabels(value: boolean) {
+	setSetting(SHOW_NAV_LABELS_KEY, value ? 'true' : 'false');
 }
 
 export function getSessionSecret() {
