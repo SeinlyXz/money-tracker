@@ -9,8 +9,6 @@
 		UserRound
 	} from 'lucide-svelte';
 
-	import { navVisibility } from '$lib/state/nav-visibility.svelte';
-
 	const items = [
 		{ href: '/', label: 'Home', icon: Home },
 		{ href: '/add', label: 'Tambah', icon: CirclePlus },
@@ -29,22 +27,15 @@
 		)
 	);
 
-	const hidden = $derived(navVisibility.autoHide && !navVisibility.visible);
 	const showLabels = $derived(page.data.showNavLabels !== false);
 </script>
 
 <nav
-	class={[
-		'fixed right-0 bottom-0 left-0 z-50 px-4 transition-transform duration-300 ease-out',
-		hidden ? 'translate-y-[150%]' : 'translate-y-0'
-	]}
-	style="padding-bottom: max(0.4rem, calc(env(safe-area-inset-bottom) - 0.5rem));"
+	class="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border-t border-r border-l border-emerald-900/10 bg-white/95 shadow-[0_-8px_24px_rgba(16,35,29,0.08)] backdrop-blur-xl"
+	style="padding-bottom: env(safe-area-inset-bottom);"
 	aria-label="Navigasi utama"
-	aria-hidden={hidden}
 >
-	<div
-		class="relative mx-auto grid max-w-md grid-cols-5 rounded-full border border-emerald-900/10 bg-white/95 px-3 py-2 shadow-[0_18px_40px_rgba(16,35,29,0.18),0_4px_12px_rgba(16,35,29,0.08)] backdrop-blur-xl"
-	>
+	<div class="relative mx-auto grid max-w-md grid-cols-5 px-3 py-2">
 		<span
 			class="pointer-events-none absolute top-2 size-10 rounded-full bg-[#10231d] transition-[left] duration-300 ease-out"
 			style="left: calc(0.75rem + {activeIndex} * ((100% - 1.5rem) / 5) + ((100% - 1.5rem) / 10) - 1.25rem);"
