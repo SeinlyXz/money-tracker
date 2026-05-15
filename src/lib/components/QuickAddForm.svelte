@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+
 	import { enhance } from '$app/forms';
 	import { invalidate } from '$app/navigation';
 	import { SendHorizontal } from 'lucide-svelte';
@@ -7,12 +9,38 @@
 
 	let quickPrompt = $state('');
 	let pending = $state(false);
+	let keyboardInset = $state(0);
+
+	onMount(() => {
+		const vv = window.visualViewport;
+		if (!vv) return;
+
+		const update = () => {
+			const inset = window.innerHeight - vv.height - vv.offsetTop;
+			keyboardInset = inset > 24 ? inset : 0;
+		};
+
+		update();
+		vv.addEventListener('resize', update);
+		vv.addEventListener('scroll', update);
+
+		return () => {
+			vv.removeEventListener('resize', update);
+			vv.removeEventListener('scroll', update);
+		};
+	});
 </script>
 
-<form
-	method="POST"
-	action="?/quickAdd"
-	class="flex flex-col gap-2 rounded-[28px] border border-emerald-900/10 bg-white/95 px-3 py-3 shadow-[0_18px_45px_rgba(16,35,29,0.08)] sm:px-4"
+<div
+	class="pointer-events-none fixed inset-x-0 z-40 px-4 sm:px-6 lg:px-8"
+	style="bottom: {keyboardInset > 0
+		? `calc(${keyboardInset}px + 0.5rem)`
+		: 'calc(5rem + env(safe-area-inset-bottom))'};"
+>
+	<form
+		method="POST"
+		action="?/quickAdd"
+		class="pointer-events-auto mx-auto flex w-full max-w-7xl flex-col gap-2 rounded-[28px] border border-emerald-900/10 bg-white/95 px-3 py-3 shadow-[0_18px_45px_rgba(16,35,29,0.08)] sm:px-4"
 	use:enhance={({ cancel }) => {
 		const promptText = quickPrompt.trim();
 		if (!promptText) {
@@ -63,4 +91,5 @@
 			{/if}
 		</button>
 	</div>
-</form>
+	</form>
+</div>

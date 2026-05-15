@@ -26,11 +26,4 @@
 	<TransactionList transactions={data.transactions} />
 </main>
 
-<div
-	class="fixed inset-x-0 z-40 px-4 sm:px-6 lg:px-8"
-	style="bottom: calc(5rem + env(safe-area-inset-bottom));"
->
-	<div class="mx-auto w-full max-w-7xl">
-		<QuickAddForm />
-	</div>
-</div>
+<QuickAddForm />

@@ -44,10 +44,28 @@
 	let scrolled = $state(false);
 
 	onMount(() => {
-		const onScroll = () => {
-			scrolled = window.scrollY > 48;
+		const ENTER = 96;
+		const EXIT = 24;
+		let ticking = false;
+
+		const update = () => {
+			const y = window.scrollY;
+			if (!scrolled && y > ENTER) {
+				scrolled = true;
+			} else if (scrolled && y < EXIT) {
+				scrolled = false;
+			}
+			ticking = false;
 		};
-		onScroll();
+
+		const onScroll = () => {
+			if (!ticking) {
+				ticking = true;
+				requestAnimationFrame(update);
+			}
+		};
+
+		update();
 		window.addEventListener('scroll', onScroll, { passive: true });
 		return () => window.removeEventListener('scroll', onScroll);
 	});
@@ -55,10 +73,10 @@
 
 <header
 	class={[
-		'sticky z-20 -mx-4 px-4 transition-[background-color,box-shadow,backdrop-filter,padding] duration-300 ease-out sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8',
+		'sticky z-20 -mx-4 px-4 pt-2 pb-2 transition-[background-color,box-shadow,backdrop-filter,border-color] duration-300 ease-out sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8',
 		scrolled
-			? 'border-b border-emerald-900/5 bg-[#eef5ee]/85 pt-2 pb-2 shadow-[0_8px_20px_rgba(16,35,29,0.06)] backdrop-blur-xl'
-			: 'bg-transparent pt-3 pb-2'
+			? 'border-b border-emerald-900/5 bg-[#eef5ee]/85 shadow-[0_8px_20px_rgba(16,35,29,0.06)] backdrop-blur-xl'
+			: 'border-b border-transparent bg-transparent'
 	]}
 	style="top: env(safe-area-inset-top);"
 >
